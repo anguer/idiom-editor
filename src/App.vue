@@ -356,7 +356,7 @@ export default {
         });
       });
 
-      return Object.freeze(_.orderBy(canConnIdioms, ['count', 'reference', 'rate'], ['asc', 'desc', 'desc']).slice(0, 1000));
+      return Object.freeze(_.orderBy(canConnIdioms, ['count', 'rate', 'reference'], ['asc', 'desc', 'desc']).slice(0, 1000));
     },
 
     /**
