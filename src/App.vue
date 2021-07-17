@@ -21,19 +21,23 @@
     <div class="padding">
       <el-form inline>
         <el-form-item>
-          <el-button type="primary" size="small" @click="download">下载</el-button>
+          <el-button type="primary" size="small" @click="clearStorage">清除缓存</el-button>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="small" @click="download" :disabled="grid.length < 8">下载</el-button>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" size="small" @click="clear">清空</el-button>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" size="small" @click="setWord" :disabled="!isExists">换词</el-button>
+          <el-button type="primary" size="small" @click="setWord(true)" :disabled="!isExists">换词</el-button>
         </el-form-item>
         <el-form-item>
           <el-select size="small" v-model="value" @change="onWordChange">
             <el-option v-for="(item, key) in optionalWords" :key="key" :label="item.word" :value="item.word">
               <span style="float: left">{{ item.word }}</span>
-              <span style="float: right; color: #8492a6; font-size: 13px">{{ item.rate }}</span>
+              <span style="float: left">({{ item.count }})</span>
+              <span style="float: right; color: #8492a6; font-size: 13px">{{ item.reference }}</span>
             </el-option>
           </el-select>
         </el-form-item>
@@ -53,6 +57,12 @@ import _ from 'lodash';
 import FileSaver from 'file-saver';
 import ClearIdioms from './data/idiom.clear.json';
 
+import { getLocalStorage, setLocalStorage } from '@/utils/storage';
+import { jsonParse, jsonStringify } from '@/utils';
+
+const KEY_IDIOM_USED_COUNT = '__idiom_used_count__';
+const KEY_IDIOM_LEVEL_NUMBER = '__idiom_level_number__';
+
 export default {
   name: 'App',
   components: { VCell },
@@ -65,6 +75,8 @@ export default {
       grid: [],
 
       value: '',
+
+      levelNumber: parseInt(getLocalStorage(KEY_IDIOM_LEVEL_NUMBER) || '1'),
     };
   },
 
@@ -75,7 +87,12 @@ export default {
 
     // 过滤已使用的成语后的列表
     idioms () {
-      return ClearIdioms.filter(t => !this.usedWords.includes(t.word));
+      return ClearIdioms.filter(t => t.word === this.value || !this.usedWords.includes(t.word)).map(t => {
+        return {
+          ...t,
+          count: this.gridStorage[t.word] || 0,
+        }
+      });
     },
 
     // 当前选中网格方向
@@ -130,7 +147,6 @@ export default {
         return [];
       }
 
-      console.log('#getReference', this.getOtherNode);
       return this.getCurrentSelections.map(t => {
         return this.getOtherNode.reduce((word, node) => {
           const index = node.axis.indexOf(`${t.rowIndex}_${t.colIndex}`);
@@ -157,20 +173,41 @@ export default {
       if (!hasRef) {
         return [];
       }
-      return this.idioms.filter(idiom => {
-        const letters = idiom.word.split('');
-        return this.getReference.every((value, index) => {
-          if (!value) {
-            return true;
+
+      return this.getRandomWords();
+    },
+
+    gridStorage: {
+      get () {
+        return jsonParse(getLocalStorage(KEY_IDIOM_USED_COUNT), {});
+      },
+      set (grid = []) {
+        const storage = jsonParse(getLocalStorage('KEY_IDIOM_USED_COUNT'), {});
+
+        grid.forEach(item => {
+          const key = item.word;
+          // console.log(storage, storage[key]);
+          if (!storage[key]) {
+            storage[key] = 0;
           }
-          return value === letters[index];
+          storage[key]++;
         });
-      });
+        setLocalStorage('KEY_IDIOM_USED_COUNT', jsonStringify(storage, {}));
+      }
+    },
+    levelStorage: {
+      get () {
+        return this.levelNumber;
+      },
+      set () {
+        this.levelNumber++;
+        setLocalStorage(KEY_IDIOM_LEVEL_NUMBER, (this.levelNumber).toString());
+      }
     }
   },
 
   watch: {
-    getCurrentSelections () {
+    getCurrentNode () {
       if (this.getCurrentNode) {
         this.value = this.getCurrentNode.word;
       } else {
@@ -218,7 +255,6 @@ export default {
 
       // other
       const diff = this.isSelectVertical ? Math.abs(last.rowIndex - e.rowIndex) : Math.abs(last.colIndex - e.colIndex);
-      // console.log('#mousemove', e, diff);
       if (diff !== 1) {
         return;
       }
@@ -236,18 +272,11 @@ export default {
      * @private
      */
     __addNode (word) {
-      if (!word) {
-        return;
-      }
-
-      const { rowIndex, colIndex } = this.getCurrentSelections[0];
-      // console.log('__addNode', JSON.parse(JSON.stringify(this.grid)), rowIndex, colIndex);
-      const index = this.grid.findIndex(t => t.rowIndex === rowIndex && t.colIndex === colIndex);
-      if (index === -1) {
+      if (!this.isExists && word) {
         this.grid.push({
           word,
-          rowIndex,
-          colIndex,
+          rowIndex: this.getCurrentSelections[0].rowIndex,
+          colIndex: this.getCurrentSelections[0].colIndex,
           vertical: this.isSelectVertical,
           axis: this.getCurrentSelections.map(t => `${t.rowIndex}_${t.colIndex}`),
         });
@@ -264,7 +293,6 @@ export default {
       }
 
       const { rowIndex, colIndex } = this.getCurrentSelections[0];
-      // console.log('__removeNode', JSON.parse(JSON.stringify(this.grid)), rowIndex, colIndex);
       const index = this.grid.findIndex(t => t.rowIndex === rowIndex && t.colIndex === colIndex);
       if (index !== -1) {
         this.grid.splice(index, 1);
@@ -273,6 +301,9 @@ export default {
     },
 
     __updateNode (word) {
+      if (!this.isExists || !word) {
+        return;
+      }
       for (let i = 0; i < this.grid.length; i++) {
         const node = this.grid[i];
         if (node.vertical === this.isSelectVertical && node.rowIndex === this.getCurrentNode.rowIndex && node.colIndex === this.getCurrentNode.colIndex) {
@@ -307,12 +338,12 @@ export default {
     },
 
     /**
-     * 随机获取一个有效成语
-     * @returns {null|*}
+     * 获取一组有效成语
+     * @returns []
      */
-    getRandomWord () {
+    getRandomWords () {
       if (this.getCurrentSelections.length !== 4) {
-        return null;
+        return [];
       }
 
       const canConnIdioms = this.idioms.filter(idiom => {
@@ -324,22 +355,23 @@ export default {
           return value === letters[index];
         });
       });
-      console.log('#canConnIdioms', canConnIdioms.length);
 
-      if (canConnIdioms.length) {
-        return canConnIdioms.random().word;
-      } else {
-        return null;
-      }
+      return Object.freeze(_.orderBy(canConnIdioms, ['count', 'reference', 'rate'], ['asc', 'desc', 'desc']).slice(0, 1000));
     },
 
     /**
      * 在选择的位置填充成语
+     * @package isClick
      */
-    setWord () {
+    setWord (isClick = false) {
       console.log('#setWords', this.getReference);
 
-      let word = this.getRandomWord();
+      if (this.isExists && !isClick) {
+        return;
+      }
+      const words = this.getRandomWords();
+      console.log(JSON.parse(JSON.stringify(words)));
+      let word = words.length && words.random().word;
       if (!word) {
         return;
       }
@@ -352,16 +384,22 @@ export default {
     },
 
     onWordChange (word) {
-      console.log('#onWordChange', word);
-      this.__updateNode(word);
+      if (this.isExists) {
+        this.__updateNode(word);
+      } else {
+        this.__addNode(word);
+      }
     },
 
     /**
      * 下载文件
      */
     download () {
-      const blob = new Blob([JSON.stringify(this.grid, null, 2)],{type:'application/json,charset=utf-8;'});
-      FileSaver.saveAs(blob, `level.json`);
+      const data = this.grid.map(t => _.omit(t, ['axis']));
+      this.gridStorage = data;
+      const blob = new Blob([JSON.stringify(data, null, 2)],{type:'application/json,charset=utf-8;'});
+      FileSaver.saveAs(blob, `level.${this.levelStorage}.json`);
+      this.levelStorage++;
     },
 
     /**
@@ -371,6 +409,11 @@ export default {
       this.current_selections = [];
       this.grid = [];
     },
+
+    clearStorage () {
+      setLocalStorage(KEY_IDIOM_USED_COUNT, JSON.stringify({}));
+      setLocalStorage(KEY_IDIOM_LEVEL_NUMBER, 1);
+    }
   }
 }
 </script>
