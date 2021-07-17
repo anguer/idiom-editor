@@ -394,13 +394,13 @@ export default {
     /**
      * 下载文件
      */
-    download () {
+    download: _.debounce(function () {
       const data = this.grid.map(t => _.omit(t, ['axis']));
       this.gridStorage = data;
       const blob = new Blob([JSON.stringify(data, null, 2)],{type:'application/json,charset=utf-8;'});
       FileSaver.saveAs(blob, `level.${this.levelStorage}.json`);
       this.levelStorage++;
-    },
+    }, 300),
 
     /**
      * 清空网格
