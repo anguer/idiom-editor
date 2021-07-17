@@ -21,7 +21,7 @@
     <div class="padding">
       <el-form inline>
         <el-form-item>
-          <el-button type="primary" size="small" @click="clearStorage">清除缓存</el-button>
+          <el-button type="danger" size="small" @click="clearStorage">清除缓存</el-button>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" size="small" @click="download" :disabled="grid.length < 8">下载</el-button>
@@ -42,7 +42,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" size="small" @click="__removeNode" :disabled="!isExists">删除</el-button>
+          <el-button type="danger" size="small" @click="__removeNode" :disabled="!isExists">删除</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -411,8 +411,19 @@ export default {
     },
 
     clearStorage () {
-      setLocalStorage(KEY_IDIOM_USED_COUNT, JSON.stringify({}));
-      setLocalStorage(KEY_IDIOM_LEVEL_NUMBER, 1);
+      this.$confirm('确认清除缓存?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        center: true
+      }).then(() => {
+        setLocalStorage(KEY_IDIOM_USED_COUNT, JSON.stringify({}));
+        setLocalStorage(KEY_IDIOM_LEVEL_NUMBER, 1);
+        this.$message({
+          type: 'success',
+          message: '清除成功!'
+        });
+      });
     }
   }
 }
