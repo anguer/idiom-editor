@@ -1,5 +1,14 @@
 <template>
   <div id="app">
+    <el-form inline>
+      <el-form-item label="词库">
+        <el-select size="small" v-model="selectIdiom">
+          <el-option key="idiom.clear" label="idiom.clear" value="idiom.clear" />
+          <el-option key="idiom.clear.fill" label="idiom.clear.fill" value="idiom.clear.fill" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+
     <div class="grid">
       <el-row v-for="rowIndex in 12" :key="rowIndex">
         <el-col :span="2" v-for="colIndex in 12" :key="colIndex">
@@ -56,6 +65,7 @@ import VCell from '@/components/cell';
 import _ from 'lodash';
 import FileSaver from 'file-saver';
 import ClearIdioms from './data/idiom.clear.json';
+import ClearFillIdioms from './data/idiom.clear.fill.json';
 
 import { getLocalStorage, setLocalStorage } from '@/utils/storage';
 import { jsonParse, jsonStringify } from '@/utils';
@@ -68,6 +78,8 @@ export default {
   components: { VCell },
   data () {
     return {
+      selectIdiom: 'idiom.clear',
+
       isSelect: false,
 
       current_selections: [],
@@ -87,12 +99,21 @@ export default {
 
     // 过滤已使用的成语后的列表
     idioms () {
-      return ClearIdioms.filter(t => t.word === this.value || !this.usedWords.includes(t.word)).map(t => {
-        return {
-          ...t,
-          count: this.gridStorage[t.word] || 0,
-        }
-      });
+      if (this.selectIdiom === 'idiom.clear') {
+        return ClearIdioms.filter(t => t.word === this.value || !this.usedWords.includes(t.word)).map(t => {
+          return {
+            ...t,
+            count: this.gridStorage[t.word] || 0,
+          }
+        });
+      } else {
+        return ClearFillIdioms.filter(t => t.word === this.value || !this.usedWords.includes(t.word)).map(t => {
+          return {
+            ...t,
+            count: this.gridStorage[t.word] || 0,
+          }
+        });
+      }
     },
 
     // 当前选中网格方向
