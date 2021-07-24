@@ -10,8 +10,8 @@
     </el-form>
 
     <div class="grid">
-      <el-row v-for="rowIndex in 12" :key="rowIndex">
-        <el-col :span="2" v-for="colIndex in 12" :key="colIndex">
+      <div class="grid-row" v-for="rowIndex in 12" :key="rowIndex">
+        <div class="grid-col" v-for="colIndex in 12" :key="colIndex">
           <v-cell class="grid-item"
                   :row-index="rowIndex"
                   :col-index="colIndex"
@@ -23,8 +23,8 @@
                   @mousemove="__mousemove"
           >
           </v-cell>
-        </el-col>
-      </el-row>
+        </div>
+      </div>
     </div>
 
     <div class="padding">
@@ -469,11 +469,27 @@ html, body {
   border-style: solid;
   border-color: #222424;
   border-width: 1px 0 0 1px;
+
+  width: calc(100vh / 2);
+  height: calc(100vh / 2);
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-row {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+}
+
+.grid-col {
+  flex: 1;
+  padding: 1px;
 }
 
 .grid-item {
-  width: 60px;
-  height: 60px;
+  width: 100%;
+  height: 100%;
   border-style: solid;
   border-color: #222424;
   border-width: 0 1px 1px 0;
