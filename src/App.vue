@@ -10,8 +10,8 @@
     </el-form>
 
     <div class="grid">
-      <div class="grid-row" v-for="rowIndex in 12" :key="rowIndex">
-        <div class="grid-col" v-for="colIndex in 12" :key="colIndex">
+      <div class="grid-row" v-for="rowIndex in 12" :key="rowIndex" :data-row="rowIndex">
+        <div class="grid-col" v-for="colIndex in 12" :key="colIndex" :data-col="colIndex">
           <v-cell class="grid-item"
                   :row-index="rowIndex"
                   :col-index="colIndex"
@@ -470,6 +470,7 @@ html, body {
   border-color: #222424;
   border-width: 1px 0 0 1px;
 
+  margin: 40px 0;
   width: calc(100vh / 2);
   height: calc(100vh / 2);
   display: flex;
@@ -477,22 +478,63 @@ html, body {
 }
 
 .grid-row {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: row;
 }
 
+.grid-row::before, .grid-row::after {
+  content: attr(data-row);
+  position: absolute;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 0;
+  bottom: 0;
+}
+
+.grid-row::before {
+  left: -40px;
+}
+
+.grid-row::after {
+  right: -40px;
+}
+
 .grid-col {
+  position: relative;
   flex: 1;
   padding: 1px;
+  border-style: solid;
+  border-color: #222424;
+  border-width: 0 1px 1px 0;
+}
+
+.grid-row:first-child .grid-col::before,
+.grid-row:last-child .grid-col::after {
+  content: attr(data-col);
+  position: absolute;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: 0;
+  right: 0;
+}
+
+.grid-row:first-child .grid-col::before {
+  top: -40px;
+}
+
+.grid-row:last-child .grid-col::after {
+  bottom: -40px;
 }
 
 .grid-item {
   width: 100%;
   height: 100%;
-  border-style: solid;
-  border-color: #222424;
-  border-width: 0 1px 1px 0;
 }
 
 .padding {
