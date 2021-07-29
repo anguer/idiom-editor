@@ -7,6 +7,16 @@
           <el-option key="idiom.clear.fill" label="idiom.clear.fill" value="idiom.clear.fill" />
         </el-select>
       </el-form-item>
+      <el-form-item label="最小成语数">
+        <el-select size="small" v-model="minIdiom">
+          <el-option key="8" label="8" :value="8" />
+          <el-option key="9" label="9" :value="9" />
+          <el-option key="10" label="10" :value="10" />
+          <el-option key="11" label="11" :value="11" />
+          <el-option key="12" label="12" :value="12" />
+          <el-option key="13" label="13" :value="13" />
+        </el-select>
+      </el-form-item>
     </el-form>
 
     <div class="grid">
@@ -33,7 +43,7 @@
           <el-button type="danger" size="small" @click="clearStorage">清除缓存</el-button>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" size="small" @click="download" :disabled="grid.length < 8">下载</el-button>
+          <el-button type="primary" size="small" @click="download" :disabled="grid.length < rawMinIdiom">下载</el-button>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" size="small" @click="clear">清空</el-button>
@@ -72,6 +82,7 @@ import { jsonParse, jsonStringify } from '@/utils';
 
 const KEY_IDIOM_USED_COUNT = '__idiom_used_count__';
 const KEY_IDIOM_LEVEL_NUMBER = '__idiom_level_number__';
+const KEY_IDIOM_MIN_NUMBER = '__idiom_min_number__';
 
 export default {
   name: 'App',
@@ -88,7 +99,11 @@ export default {
 
       value: '',
 
+      rawGridStorage: jsonParse(getLocalStorage(KEY_IDIOM_USED_COUNT), {}),
+
       levelNumber: parseInt(getLocalStorage(KEY_IDIOM_LEVEL_NUMBER) || '1'),
+
+      rawMinIdiom: parseInt(getLocalStorage(KEY_IDIOM_MIN_NUMBER) || '8'),
     };
   },
 
@@ -200,22 +215,24 @@ export default {
 
     gridStorage: {
       get () {
-        return jsonParse(getLocalStorage(KEY_IDIOM_USED_COUNT), {});
+        return this.rawGridStorage;
       },
       set (grid = []) {
-        const storage = jsonParse(getLocalStorage('KEY_IDIOM_USED_COUNT'), {});
+        // const storage = jsonParse(getLocalStorage('KEY_IDIOM_USED_COUNT'), {});
 
         grid.forEach(item => {
           const key = item.word;
           // console.log(storage, storage[key]);
-          if (!storage[key]) {
-            storage[key] = 0;
+          if (!this.rawGridStorage[key]) {
+            this.rawGridStorage[key] = 0;
           }
-          storage[key]++;
+          this.rawGridStorage[key]++;
         });
-        setLocalStorage('KEY_IDIOM_USED_COUNT', jsonStringify(storage, {}));
+
+        setLocalStorage(KEY_IDIOM_USED_COUNT, jsonStringify(this.rawGridStorage, {}));
       }
     },
+
     levelStorage: {
       get () {
         return this.levelNumber;
@@ -224,7 +241,17 @@ export default {
         this.levelNumber++;
         setLocalStorage(KEY_IDIOM_LEVEL_NUMBER, (this.levelNumber).toString());
       }
-    }
+    },
+
+    minIdiom: {
+      get () {
+        return this.rawMinIdiom;
+      },
+      set (val) {
+        this.rawMinIdiom = val;
+        setLocalStorage(KEY_IDIOM_MIN_NUMBER, (this.rawMinIdiom).toString());
+      }
+    },
   },
 
   watch: {
@@ -385,13 +412,13 @@ export default {
      * @package isClick
      */
     setWord (isClick = false) {
-      console.log('#setWords', this.getReference);
+      // console.log('#setWords', this.getReference);
 
       if (this.isExists && !isClick) {
         return;
       }
       const words = this.getRandomWords();
-      console.log(JSON.parse(JSON.stringify(words)));
+      // console.log(JSON.parse(JSON.stringify(words)));
       let word = words.length && words.random().word;
       if (!word) {
         return;
